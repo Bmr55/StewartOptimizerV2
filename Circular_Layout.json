@@ -1,0 +1,100 @@
+# StewartOptimizer v2 — Round 4 changes (optional servo capability specs)
+
+This round adds optional servo torque and speed inputs to the optimizer.
+The optimizer's existing `torque` and `speedDemand` metrics tell you what
+each candidate layout *requires* of its servos. With this round, you can
+also tell the optimizer what your servo *delivers*, and it will report
+margin per layout — letting you filter out layouts your hardware can't
+actually drive.
+
+This is intentionally **soft**, not a hard constraint. Layouts that
+exceed your servo specs still appear on the Pareto front, just flagged
+"⚠ OVER". You can see them and decide whether to upgrade the servo or
+back off the workspace requirements.
+
+## Two operating modes
+
+**Mode A — "What servo do I need?"** (specs left blank)
+Same behavior as before. `torque` is the peak torque each servo will
+need to deliver at the worst-case workspace pose. `speedDemand` is the
+peak angular velocity needed at the cycling frequency. The result panel
+labels these as "min servo spec" so you know what to shop for.
+
+**Mode B — "Will my servo handle it?"** (specs filled in)
+The optimizer additionally computes:
+- `torqueMargin = (servoMaxTorqueNm − torque) / servoMaxTorqueNm`
+- `speedMargin  = (servoMaxSpeed − speedDemand) / servoMaxSpeed`
+
+Positive values = headroom (e.g. 0.30 means the layout uses 70% of your
+servo's capacity). Zero = at the limit. Negative = exceeds it. The
+result panel shows the demand alongside your spec ("τ 1.20/1.50 N·m
+(20% margin)") and warns visually if margin is negative.
+
+## What changed in the code
+
+- **`requirements.js`**: `parseRequirements()` now reads optional
+  `constraints.servo_max_torque_nm` (N·m) and
+  `constraints.servo_max_speed_deg_per_sec` (°/s). Absent or 0 → null.
+- **`optimizer.js`**: `Optimizer` constructor accepts `servoMaxTorqueNm`
+  and `servoMaxSpeedRadPerS` (note: rad/s internally). `evaluateLayout()`
+  computes `torqueMargin` and `speedMargin` (or null if specs unset)
+  and includes them in the metrics object alongside `servoMaxTorqueNm`
+  and `servoMaxSpeedRadPerS` for downstream display.
+- **`optimizer-worker.js`**: receives `servoMaxTorqueNm` (N·m) and
+  `servoMaxSpeedDegPerS` (°/s) from the UI, converts speed deg/s → rad/s,
+  passes both to the Optimizer. Margins and reference values are
+  serialized into the Pareto payload.
+- **`index.html`**: new "Servo Specs (optional)" section after Safety,
+  with `Servo Max Torque (N·m)` and `Servo Max Speed (°/s)` inputs.
+  Tooltips include conversion notes (kg·cm → N·m, datasheet "0.16s/60°"
+  → °/s, derate by 30–50% for under-load cycling). Pareto chart
+  dropdowns gain "Torque Margin" and "Speed Margin" axes. Result-info
+  line auto-switches between "minimum servo spec" mode and
+  "demand/spec margin" mode based on whether specs are entered.
+
+## Selection pressure (what the GA actually optimizes)
+
+I deliberately did NOT change the optimizer's objective vector based
+on whether servo specs are given. With or without specs, the compact
+4-objective set is still `coverage, isotropy, limitMargin, −torque`.
+This is intentional:
+
+- Mathematically, minimizing torque demand and maximizing torque margin
+  produce the same Pareto ordering when the servo spec is constant —
+  margin = (spec − demand) / spec is monotonically decreasing in demand,
+  so layouts rank identically either way.
+- Adding margin as a separate objective would push the optimizer toward
+  high-margin layouts even when the user really just wanted "minimum
+  spec." Keeping the objective unchanged means the optimizer behaves
+  the same way; the spec affects display and filtering only.
+
+If you want the optimizer to actively avoid over-spec layouts during
+selection, that's a separate switch I can add — let me know.
+
+## Conversion cheat-sheet (lives in the input tooltips too)
+
+- **Torque** datasheet → N·m: divide kg·cm by 10.2. A 25 kg·cm servo ≈ 2.45 N·m.
+- **Speed** datasheet → °/s: if the spec is "Xs / 60°", compute 60 / X. Example:
+  "0.16 sec/60°" → 60 ÷ 0.16 = 375 °/s.
+- **Derating**: datasheet speed is no-load. Real cycling speed under
+  load is typically 50–70% of rated; conservative engineering uses 50%.
+  If your servo specs say 375 °/s and you're driving a meaningful payload,
+  enter ≈ 200 °/s rather than 375.
+
+## Quick test plan
+
+1. Open the optimizer. Both servo spec inputs are blank by default.
+2. Run with default settings. Open the result panel — should read
+   something like "τ demand 1.20 N·m (min servo spec) — speed demand
+   240 °/s (min servo spec)".
+3. Enter `1.5` in **Servo Max Torque (N·m)** and `300` in
+   **Servo Max Speed (°/s)**. Click any Pareto point. The same line
+   should now read "τ 1.20/1.50 N·m (20% margin) — speed 240/300 °/s
+   (20% margin)".
+4. Drop **Servo Max Torque** to `0.8`. The selected layout's torque
+   margin goes negative — should now show "⚠ OVER" in the info line.
+5. Switch the Pareto chart Y-axis to "Torque Margin" — points should
+   spread out by margin. Layouts above 0 are within spec; below 0 exceed.
+6. Run a fresh optimization with the specs entered. Pareto chart should
+   include layouts with various margin values; you can pick one that
+   meets your criteria.

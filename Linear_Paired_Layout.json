@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Stewart Platform Optimizer</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #121212;
+            --panel: #1f1f1f;
+            --border: #333;
+            --accent: #4dabf7;
+            --accent-dim: #2b6cb0;
+            --text: #f0f0f0;
+            --muted: #b0b0b0;
+            --danger: #ff6b6b;
+            --good: #51cf66;
+            --warn: #ffd43b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        main {
+            width: min(1100px, 100%);
+            display: grid;
+            gap: 20px;
+        }
+
+        section {
+            background: var(--panel);
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        h1, h2, h3 { margin: 0; font-weight: 600; }
+        h3 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        p { margin: 0; color: var(--muted); }
+
+        textarea {
+            width: 100%;
+            min-height: 220px;
+            font-family: "Fira Code", "SFMono-Regular", Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            background: #111;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            resize: vertical;
+        }
+
+        textarea.short { min-height: 100px; }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title h1, .section-title h2 { flex: 1; }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .field-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .field-header span {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+        }
+
+        .checkbox-field {
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-field .field-header {
+            flex: 1;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .info-button {
+            appearance: none;
+            border: none;
+            background: transparent;
+            color: var(--accent);
+            font-size: 14px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s ease, color .15s ease;
+        }
+
+        .info-button:hover, .info-button:focus-visible {
+            background: rgba(77, 171, 247, 0.15);
+            outline: none;
+        }
+
+        .info-button:active { background: rgba(77, 171, 247, 0.25); }
+
+        .info-popup {
+            position: absolute;
+            max-width: 320px;
+            background: #1c1c1c;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-6px);
+            transition: opacity .12s ease, transform .12s ease;
+        }
+
+        .info-popup.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        input[type="number"], input[type="text"], select {
+            background: #111;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        select { cursor: pointer; }
+
+        button {
+            appearance: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #2b2b2b;
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s ease;
+        }
+
+        button:hover { background: #343434; }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #081c2f;
+        }
+
+        button.primary:hover { filter: brightness(1.1); }
+
+        button.danger {
+            background: #3a1f1f;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        button.danger:hover { background: #4a2828; }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .range-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .axis-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .status {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #151515;
+            font-family: "Fira Code", monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .status.error {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .status.success { border-color: var(--good); }
+        .status.warn { border-color: var(--warn); }
+
+        .progress-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 4px 16px;
+            font-family: "Fira Code", monospace;
+            font-size: 13px;
+        }
+
+        .progress-grid > .label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-size: 11px;
+            align-self: center;
+        }
+        .progress-grid > .value { color: var(--text); }
+
+        .progress-bar {
+            position: relative;
+            height: 8px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar > .fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+
+        #resultOutput { min-height: 180px; }
+
+        details summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 13px;
+            user-select: none;
+        }
+        details summary:hover { color: var(--text); }
+        details[open] summary { color: var(--text); margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <main>
+        <section>
+            <div class="section-title">
+                <h1>Requirements</h1>
+                <button type="button" class="info-button" data-info="Paste or edit your project's requirements JSON. The optimizer reads this structured document to derive payload, workspace, and constraint targets.">ⓘ</button>
+            </div>
+            <p>Provide the Stewart platform requirements document following <code>Stewart_Requirements_Schema_v2.json</code>. The optimizer will generate candidate layouts automatically.</p>
+            <div class="button-row">
+                <button id="loadSampleRequirements">Load Sample Requirements</button>
+                <button id="clearRequirements">Clear</button>
+            </div>
+            <label class="field">
+                <div class="field-header">
+                    <span>Requirements JSON</span>
+                    <button type="button" class="info-button" data-info="This JSON document defines the payload, workspace ranges, and actuator limits the optimizer must respect. Adjust it to match your real-world requirements.">ⓘ</button>
+                </div>
+                <textarea id="requirementsInput" spellcheck="false" aria-label="Requirements JSON"></textarea>
+            </label>
+        </section>
+
+        <section>
+            <div class="section-title">
+                <h2>Search Configuration</h2>
+                <button type="button" class="info-button" data-info="Top-level controls that decide what topologies the GA explores, how thoroughly each candidate is evaluated, and how many candidates are evaluated total.">ⓘ</button>
+            </div>
+
+            <div class="grid-2col">
+                <label class="field">
+                    <div class="field-header">
+                        <span>Base Topology</span>
+                        <button type="button" class="info-button" data-info="Shape of the random base/platform anchor pattern. Circular: classic hex Stewart (default). Rectangular: 3-row, 2-column rectangular layout with optional Z-stagger to recover 6-DOF (without stagger this collapses to a 5-DOF, redundantly-actuated mechanism). Free: anchors placed independently; most expressive but slowest to converge. Ignored if a Reference Layout is supplied — the GA seeds and mutates around the reference instead.">ⓘ</button>
+                    </div>
+                    <select id="optTopology">
+                        <option value="circular" selected>Circular (hexagonal)</option>
+                        <option value="rectangular">Rectangular (3×2 paired)</option>
+                        <option value="free">Free (independent anchors)</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <div class="field-header">
+                        <span>Calculation Depth</span>
+                        <button type="button" class="info-button" data-info="How many poses are tested per candidate layout. Quick (256 Halton samples) is good for quick iteration. Standard (1024) is the default. Thorough (4096) reduces variance further. Exhaustive uses a full Cartesian grid over the workspace ranges and is dramatically slower (often 1000x). Halton sampling produces unbiased coverage estimates with predictable variance ≈ 1/√N.">ⓘ</button>
+                    </div>
+                    <select id="optDepth">
+                        <option value="quick">Quick (256 samples)</option>
+                        <option value="standard" selected>Standard (1024 samples)</option>
+                        <option value="thorough">Thorough (4096 samples)</option>
+                        <option value="exhaustive">Exhaustive (full grid — slow)</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <div class="field-header">
+                        <span>Objective Set</span>
+                        <button type="button" class="info-button" data-info="Compact uses 4 objectives (coverage, isotropy, limit-margin, -torque). Full uses all 9. NSGA-II degenerates above ~4 objectives because almost every solution becomes non-dominated, so Compact is recommended unless you have a specific reason. All 9 sub-metrics are still computed and reported either way.">ⓘ</button>
+                    </div>
+                    <select id="optObjectiveSet">
+                        <option value="compact" selected>Compact (4 objectives)</option>
+                        <option value="full">Full (9 objectives)</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <div class="field-header">
+                        <span>Generations</span>
+                        <button type="button" class="info-button" data-info="Number of evolutionary iterations.">ⓘ</button>
+                    </div>
+                    <input type="number" id="optGenerations" value="25" min="1">
+                </label>
+
+                <label class="field">
+                    <div class="field-header">
+                        <span>Population Size</span>
+                        <button type="button" class="info-button" data-info="Layouts evaluated per generation.">ⓘ</button>
+                    </div>
+                    <input type="number" id="optPopulation" value="40" min="4">
+                </label>
+
+                <label class="field">
+                    <div class="field-header">
+                        <span>Mutation Rate</span>
+                        <button type="button" class="info-button" data-info="Probability that an offspring layout is mutated after crossover. Higher values explore more, lower values exploit the current population.">ⓘ</button>
+                    </div>
+                    <input type="number" id="optMutationRate" value="0.35" min="0" max="1" step="0.05">
+                </label>
+            </div>
+
+            <details>
+                <summary>Reference Layout (optional — seed the GA around an existing geometry instead of random)</summary>
+                <p style="margin-top: 8px;">Paste a layout JSON (matching the optimizer's exported format). When present, the first member of the population is the reference verbatim; the remaining members are mutations of it. Overrides the Base Topology selection.</p>
+                <label class="field" style="margin-top: 8px;">
+                    <textarea id="referenceLayoutInput" class="short" placeholder='{ "base_anchors": [...], "platform_anchors": [...], "beta_angles": [...], "horn_length": ..., "rod_length": ... }' spellcheck="false"></textarea>
+                </label>
+                <div class="button-row">
+                    <button id="clearReferenceLayout">Clear Reference</button>
+                </div>
+            </details>
+
+            <h3>Workspace Sweep Ranges</h3>
+            <p>Prefilled from the requirements but editable. Used directly when Calculation Depth = Exhaustive; the rotation step values are ignored when sampling.</p>
+            <div class="range-rows">
+                <div class="axis-row">
+                    <label class="field"><div class="field-header"><span>X Min</span></div><input type="number" id="optXMin"></label>
+                    <label class="field"><div class="field-header"><span>X Max</span></div><input type="number" id="optXMax"></label>
+                    <label class="field"><div class="field-header"><span>X Step</span></div><input type="number" id="optXStep"></label>
+                    <label class="field"><div class="field-header"><span>Rx Min</span></div><input type="number" id="optRxMin"></label>
+                    <label class="field"><div class="field-header"><span>Rx Max</span></div><input type="number" id="optRxMax"></label>
+                    <label class="field"><div class="field-header"><span>Rx Step</span></div><input type="number" id="optRxStep"></label>
+                </div>
+                <div class="axis-row">
+                    <label class="field"><div class="field-header"><span>Y Min</span></div><input type="number" id="optYMin"></label>
+                    <label class="field"><div class="field-header"><span>Y Max</span></div><input type="number" id="optYMax"></label>
+                    <label class="field"><div class="field-header"><span>Y Step</span></div><input type="number" id="optYStep"></label>
+                    <label class="field"><div class="field-header"><span>Ry Min</span></div><input type="number" id="optRyMin"></label>
+                    <label class="field"><div class="field-header"><span>Ry Max</span></div><input type="number" id="optRyMax"></label>
+                    <label class="field"><div class="field-header"><span>Ry Step</span></div><input type="number" id="optRyStep"></label>
+                </div>
+                <div class="axis-row">
+                    <label class="field"><div class="field-header"><span>Z Min</span></div><input type="number" id="optZMin"></label>
+                    <label class="field"><div class="field-header"><span>Z Max</span></div><input type="number" id="optZMax"></label>
+                    <label class="field"><div class="field-header"><span>Z Step</span></div><input type="number" id="optZStep"></label>
+                    <label class="field"><div class="field-header"><span>Rz Min</span></div><input type="number" id="optRzMin"></label>
+                    <label class="field"><div class="field-header"><span>Rz Max</span></div><input type="number" id="optRzMax"></label>
+                    <label class="field"><div class="field-header"><span>Rz Step</span></div><input type="number" id="optRzStep"></label>
+                </div>
+            </div>
+
+            <h3>Safety</h3>
+            <div class="grid-2col">
+                <label class="field">
+                    <div class="field-header">
+                        <span>Ball Joint Half-Angle (°)</span>
+                        <button type="button" class="info-button" data-info="Max angle the rod can deflect from the joint's NEUTRAL direction (cone half-angle), measured from straight-through. For a joint advertised as full swivel range S° (limit-to-limit), enter S/2. Examples: standard rod end → 30°, McMaster high-misalignment joint with 65° total swivel → 32.5°, premium uniball → up to 45°. Lower values are more restrictive; the optimizer will favor layouts whose typical workspace poses stay within this cone.">ⓘ</button>
+                    </div>
+                    <input type="number" id="ballJointLimit" value="45" min="5" max="89" step="0.5">
+                </label>
+                <label class="field checkbox-field">
+                    <input type="checkbox" id="ballJointClamp" checked>
+                    <div class="field-header">
+                        <span>Clamp ball joints during evaluation</span>
+                        <button type="button" class="info-button" data-info="When enabled, poses that exceed the ball joint angle are counted but clamped so the optimizer can still gauge performance. Disable to treat them as unreachable.">ⓘ</button>
+                    </div>
+                </label>
+            </div>
+
+            <h3>Servo Specs <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;">(optional)</span></h3>
+            <p>Leave blank to see the <em>minimum servo spec</em> the layout requires (the result panel will report peak torque and peak speed demand). Fill in to see margin against your servo's capabilities — layouts close to or over your spec get flagged.</p>
+            <div class="grid-2col">
+                <label class="field">
+                    <div class="field-header">
+                        <span>Servo Max Torque (N·m)</span>
+                        <button type="button" class="info-button" data-info="Stall or rated torque per servo, in newton-metres. Convert from kg·cm by dividing by ~10.2 — e.g. a 25 kg·cm servo ≈ 2.45 N·m. Most datasheets list rated torque at 6V; if your supply is higher you may exceed this. Leave blank to skip the margin check and just see how much torque each Pareto layout demands.">ⓘ</button>
+                    </div>
+                    <input type="number" id="servoMaxTorque" placeholder="e.g. 1.5" min="0" step="0.05">
+                </label>
+                <label class="field">
+                    <div class="field-header">
+                        <span>Servo Max Speed (°/s)</span>
+                        <button type="button" class="info-button" data-info="Peak servo angular speed in degrees per second, no-load. If your datasheet gives the period for 60° travel, divide: e.g. '0.16s/60°' → 60 ÷ 0.16 = 375 °/s. Real-world speed under load is typically 50–70% of rated, so derate accordingly. Leave blank to skip the margin check and just see how fast each Pareto layout demands.">ⓘ</button>
+                    </div>
+                    <input type="number" id="servoMaxSpeed" placeholder="e.g. 375" min="0" step="1">
+                </label>
+            </div>
+        </section>
+
+        <section>
+            <h2>Execution</h2>
+            <div class="button-row">
+                <button class="primary" id="runOptimization">Run Optimization</button>
+                <button class="danger" id="stopOptimization" disabled>Stop</button>
+                <button id="exportBestLayout" disabled>Download Selected Layout</button>
+                <button id="openInSimulator" disabled>Open Selected in Simulator</button>
+            </div>
+
+            <div id="optStatus" class="status">Idle</div>
+
+            <div id="progressPanel" class="status" style="display:none;">
+                <div class="progress-grid">
+                    <div class="label">Started</div><div class="value" id="progStarted">—</div>
+                    <div class="label">ETA Finish</div><div class="value" id="progEta">computing estimate…</div>
+                    <div class="label">Generation</div><div class="value" id="progGen">—</div>
+                    <div class="label">Evaluations</div><div class="value" id="progEvals">—</div>
+                    <div class="label">Pareto front</div><div class="value" id="progPareto">—</div>
+                    <div class="label">Best so far</div><div class="value" id="progBest">—</div>
+                </div>
+                <div class="progress-bar"><div id="progBar" class="fill"></div></div>
+            </div>
+
+            <div id="paretoPanel" class="status" style="display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                    <h3 style="margin:0;color:var(--text);text-transform:none;letter-spacing:0;font-size:14px;">Pareto Front — click a point to select that layout</h3>
+                    <div style="display:flex;gap:10px;align-items:center;font-size:12px;">
+                        <label class="field" style="flex-direction:row;align-items:center;gap:6px;">
+                            <span style="color:var(--muted);text-transform:uppercase;letter-spacing:.3px;">X</span>
+                            <select id="paretoXAxis"></select>
+                        </label>
+                        <label class="field" style="flex-direction:row;align-items:center;gap:6px;">
+                            <span style="color:var(--muted);text-transform:uppercase;letter-spacing:.3px;">Y</span>
+                            <select id="paretoYAxis"></select>
+                        </label>
+                    </div>
+                </div>
+                <div id="paretoChart" style="width:100%;height:320px;background:#0e0e0e;border-radius:6px;border:1px solid var(--border);position:relative;"></div>
+                <div id="paretoSelectedInfo" style="margin-top:8px;font-family:'Fira Code',monospace;font-size:12px;color:var(--muted);">No layout selected.</div>
+            </div>
+
+            <textarea id="resultOutput" spellcheck="false" readonly aria-label="Optimization output"></textarea>
+        </section>
+    </main>
+
+    <script type="module">
+        import { parseRequirements, loadDefaultRequirements } from './requirements.js';
+
+        const requirementsInput   = document.getElementById('requirementsInput');
+        const referenceInput      = document.getElementById('referenceLayoutInput');
+        const statusEl            = document.getElementById('optStatus');
+        const progressPanel       = document.getElementById('progressPanel');
+        const progStarted         = document.getElementById('progStarted');
+        const progEta             = document.getElementById('progEta');
+        const progGen             = document.getElementById('progGen');
+        const progEvals           = document.getElementById('progEvals');
+        const progPareto          = document.getElementById('progPareto');
+        const progBest            = document.getElementById('progBest');
+        const progBar             = document.getElementById('progBar');
+        const resultOutput        = document.getElementById('resultOutput');
+        const ballJointClampCheck = document.getElementById('ballJointClamp');
+        const ballJointLimitInput = document.getElementById('ballJointLimit');
+        const servoMaxTorqueInput = document.getElementById('servoMaxTorque');
+        const servoMaxSpeedInput  = document.getElementById('servoMaxSpeed');
+        const runBtn              = document.getElementById('runOptimization');
+        const stopBtn             = document.getElementById('stopOptimization');
+        const exportBtn           = document.getElementById('exportBestLayout');
+        const openSimBtn          = document.getElementById('openInSimulator');
+        const paretoPanel         = document.getElementById('paretoPanel');
+        const paretoChart         = document.getElementById('paretoChart');
+        const paretoXAxis         = document.getElementById('paretoXAxis');
+        const paretoYAxis         = document.getElementById('paretoYAxis');
+        const paretoSelectedInfo  = document.getElementById('paretoSelectedInfo');
+
+        const infoPopup = document.createElement('div');
+        infoPopup.className = 'info-popup';
+        infoPopup.setAttribute('role', 'dialog');
+        infoPopup.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(infoPopup);
+        let activeInfoButton = null;
+        let lastWorkspaceDefaults = null;
+
+        let worker = null;
+        let runStartTime = null;
+        let lastBestSerialized = null;
+        let lastParetoSerialized = [];
+
+        // --- Info popups -----------------------------------------------------
+        function hideInfoPopup() {
+            if (!infoPopup.classList.contains('visible')) return;
+            infoPopup.classList.remove('visible');
+            infoPopup.setAttribute('aria-hidden', 'true');
+            infoPopup.textContent = '';
+            activeInfoButton = null;
+        }
+        function showInfoPopup(button) {
+            const message = button?.dataset?.info;
+            if (!message) return;
+            infoPopup.textContent = message;
+            infoPopup.classList.add('visible');
+            infoPopup.setAttribute('aria-hidden', 'false');
+            const rect = button.getBoundingClientRect();
+            const { innerWidth } = window;
+            const scrollX = window.scrollX || 0;
+            const scrollY = window.scrollY || 0;
+            const popupRect = infoPopup.getBoundingClientRect();
+            const top = scrollY + rect.bottom + 8;
+            let left = scrollX + rect.left + rect.width / 2 - popupRect.width / 2;
+            const minLeft = scrollX + 8;
+            const maxLeft = scrollX + innerWidth - popupRect.width - 8;
+            if (left < minLeft) left = minLeft;
+            if (left > maxLeft) left = Math.max(minLeft, maxLeft);
+            infoPopup.style.top = `${top}px`;
+            infoPopup.style.left = `${left}px`;
+            activeInfoButton = button;
+        }
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('.info-button');
+            if (button) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (activeInfoButton === button && infoPopup.classList.contains('visible')) hideInfoPopup();
+                else showInfoPopup(button);
+                return;
+            }
+            if (!infoPopup.contains(event.target)) hideInfoPopup();
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideInfoPopup(); });
+        window.addEventListener('scroll', hideInfoPopup, true);
+        window.addEventListener('resize', hideInfoPopup);
+
+        // --- Status / range helpers ------------------------------------------
+        function showStatus(message, kind = '') {
+            statusEl.textContent = message;
+            statusEl.classList.remove('error', 'success', 'warn');
+            if (kind) statusEl.classList.add(kind);
+        }
+
+        function populateWorkspaceInputs(workspace) {
+            const map = [['X', workspace.x], ['Y', workspace.y], ['Z', workspace.z],
+                         ['Rx', workspace.rx], ['Ry', workspace.ry], ['Rz', workspace.rz]];
+            for (const [prefix, range] of map) {
+                document.getElementById(`opt${prefix}Min`).value  = range.min;
+                document.getElementById(`opt${prefix}Max`).value  = range.max;
+                document.getElementById(`opt${prefix}Step`).value = Number(range.step.toFixed(4));
+            }
+            lastWorkspaceDefaults = workspace;
+        }
+
+        // Populate the Safety + Servo Specs inputs from a parsed requirements
+        // doc. Servo specs are optional — if absent in the JSON, leave the
+        // input as-is so user-entered values aren't clobbered by Sample Reqs reload.
+        function populateSafetyInputs(normalized) {
+            if (Number.isFinite(normalized.ball_joint_max_deg)) {
+                ballJointLimitInput.value = normalized.ball_joint_max_deg;
+            }
+            if (Number.isFinite(normalized.servo_max_torque_nm) && normalized.servo_max_torque_nm > 0) {
+                servoMaxTorqueInput.value = normalized.servo_max_torque_nm;
+            }
+            if (Number.isFinite(normalized.servo_max_speed_deg_per_sec) && normalized.servo_max_speed_deg_per_sec > 0) {
+                servoMaxSpeedInput.value = normalized.servo_max_speed_deg_per_sec;
+            }
+        }
+
+        function readWorkspaceRanges() {
+            const fallback = lastWorkspaceDefaults || {
+                x:  { min: 0, max: 0, step: 1 }, y:  { min: 0, max: 0, step: 1 },
+                z:  { min: 0, max: 0, step: 1 }, rx: { min: 0, max: 0, step: 1 },
+                ry: { min: 0, max: 0, step: 1 }, rz: { min: 0, max: 0, step: 1 },
+            };
+            const num = (id, fb) => {
+                const v = Number(document.getElementById(id).value);
+                return Number.isFinite(v) ? v : fb;
+            };
+            const read = (p, d) => ({
+                min:  num(`opt${p}Min`,  d.min),
+                max:  num(`opt${p}Max`,  d.max),
+                step: Math.abs(num(`opt${p}Step`, d.step)) || d.step,
+            });
+            return {
+                x:  read('X',  fallback.x),
+                y:  read('Y',  fallback.y),
+                z:  read('Z',  fallback.z),
+                rx: read('Rx', fallback.rx),
+                ry: read('Ry', fallback.ry),
+                rz: read('Rz', fallback.rz),
+            };
+        }
+
+        // --- Time formatting -------------------------------------------------
+        function formatClock(ms) {
+            const d = new Date(ms);
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
+        function formatDuration(ms) {
+            if (!Number.isFinite(ms) || ms < 0) return '—';
+            const s = Math.round(ms / 1000);
+            if (s < 60) return `${s} sec`;
+            const m = Math.floor(s / 60);
+            const sr = s % 60;
+            if (m < 60) return sr ? `${m} min ${sr} sec` : `${m} min`;
+            const h = Math.floor(m / 60);
+            const mr = m % 60;
+            return mr ? `${h} hr ${mr} min` : `${h} hr`;
+        }
+        // Parse a number from a text input where blank/0/non-numeric → null.
+        // Used for the optional Servo Max Torque and Max Speed inputs.
+        function parseOptionalNumber(s) {
+            if (s == null) return null;
+            const t = String(s).trim();
+            if (t === '') return null;
+            const v = Number(t);
+            return (Number.isFinite(v) && v > 0) ? v : null;
+        }
+
+        // --- Progress display -------------------------------------------------
+        function showProgressPanel() {
+            progressPanel.style.display = 'block';
+        }
+        function hideProgressPanel() {
+            progressPanel.style.display = 'none';
+        }
+        function updateProgress(p) {
+            const { startTime, evalsDone = 0, totalEvals = 1, generation = 0,
+                    totalGenerations = 0, paretoSize = 0, best } = p || {};
+            if (startTime) progStarted.textContent = formatClock(startTime);
+            const frac = totalEvals > 0 ? Math.min(1, evalsDone / totalEvals) : 0;
+
+            // ETA: extrapolate from elapsed time. Show "computing…" before
+            // we have at least 2 evaluations, since 1 sample is too noisy.
+            if (evalsDone >= 2 && startTime) {
+                const elapsed = Date.now() - startTime;
+                const rate = evalsDone / elapsed;          // evals per ms
+                const remaining = (totalEvals - evalsDone) / rate;
+                const finishAt = Date.now() + remaining;
+                progEta.textContent = `${formatClock(finishAt)} (~${formatDuration(remaining)} remaining)`;
+            } else {
+                progEta.textContent = 'computing estimate…';
+            }
+            progGen.textContent = totalGenerations > 0
+                ? `${generation} / ${totalGenerations}`
+                : `${generation}`;
+            progEvals.textContent = `${evalsDone} / ${totalEvals} (${(frac * 100).toFixed(0)}%)`;
+            progPareto.textContent = `${paretoSize} layouts`;
+            if (best) {
+                progBest.textContent =
+                    `coverage ${best.coverage?.toFixed(1) ?? '—'}%  ` +
+                    `iso ${best.isotropy?.toFixed(3) ?? '—'}  ` +
+                    `lim ${best.limitMargin?.toFixed(3) ?? '—'}  ` +
+                    `τ ${best.torque?.toFixed(2) ?? '—'} N·m`;
+            } else {
+                progBest.textContent = '—';
+            }
+            progBar.style.width = `${(frac * 100).toFixed(1)}%`;
+        }
+
+        function resetProgress() {
+            progStarted.textContent = '—';
+            progEta.textContent = 'computing estimate…';
+            progGen.textContent = '—';
+            progEvals.textContent = '—';
+            progPareto.textContent = '—';
+            progBest.textContent = '—';
+            progBar.style.width = '0%';
+        }
+
+        // --- Result rendering -------------------------------------------------
+        function serializeBestForUI(best) {
+            if (!best) return '';
+            return JSON.stringify(best, null, 2);
+        }
+
+        function downloadBlob(data, filename, mime) {
+            const blob = new Blob([data], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- Pareto chart ----------------------------------------------------
+        // Each entry: key (matches metrics.* in worker payload), label shown
+        // in dropdowns, and direction = +1 if larger is better, -1 if smaller.
+        const METRIC_DEFS = [
+            { key: 'coverage',     label: 'Coverage (%)',     direction:  1 },
+            { key: 'isotropy',     label: 'Isotropy (avg)',   direction:  1 },
+            { key: 'dexterity',    label: 'Dexterity (home)', direction:  1 },
+            { key: 'stiffness',    label: 'Stiffness',        direction:  1 },
+            { key: 'limitMargin',  label: 'Limit Margin',     direction:  1 },
+            { key: 'loadBalance',  label: 'Load Balance',     direction:  1 },
+            { key: 'torque',       label: 'Torque (N·m)',     direction: -1 },
+            { key: 'speedDemand',  label: 'Speed Demand',     direction: -1 },
+            { key: 'fatigue',      label: 'Fatigue',          direction: -1 },
+            { key: 'torqueMargin', label: 'Torque Margin',    direction:  1 },
+            { key: 'speedMargin',  label: 'Speed Margin',     direction:  1 },
+        ];
+
+        function populateParetoAxisDropdowns() {
+            const fillSelect = (sel, defaultKey) => {
+                sel.innerHTML = '';
+                for (const m of METRIC_DEFS) {
+                    const opt = document.createElement('option');
+                    opt.value = m.key;
+                    opt.textContent = m.label;
+                    if (m.key === defaultKey) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+            };
+            fillSelect(paretoXAxis, 'coverage');
+            fillSelect(paretoYAxis, 'isotropy');
+        }
+
+        let selectedParetoIdx = 0;
+
+        function getMetric(entry, key) {
+            const v = entry?.metrics?.[key];
+            return Number.isFinite(v) ? v : null;
+        }
+
+        function renderParetoChart() {
+            paretoChart.innerHTML = '';
+            if (!Array.isArray(lastParetoSerialized) || lastParetoSerialized.length === 0) {
+                paretoPanel.style.display = 'none';
+                return;
+            }
+            paretoPanel.style.display = 'block';
+
+            const xKey = paretoXAxis.value;
+            const yKey = paretoYAxis.value;
+            const xMeta = METRIC_DEFS.find((m) => m.key === xKey);
+            const yMeta = METRIC_DEFS.find((m) => m.key === yKey);
+
+            const points = lastParetoSerialized
+                .map((entry, idx) => ({ idx, x: getMetric(entry, xKey), y: getMetric(entry, yKey) }))
+                .filter((p) => p.x !== null && p.y !== null);
+
+            if (points.length === 0) {
+                paretoChart.innerHTML = '<div style="padding:14px;color:var(--muted);font-family:\'Fira Code\',monospace;font-size:12px;">No finite values for the selected axes.</div>';
+                return;
+            }
+
+            const W = paretoChart.clientWidth || 600;
+            const H = 320;
+            const padL = 56, padR = 12, padT = 10, padB = 36;
+            const plotW = W - padL - padR;
+            const plotH = H - padT - padB;
+
+            let xMin = Math.min(...points.map((p) => p.x));
+            let xMax = Math.max(...points.map((p) => p.x));
+            let yMin = Math.min(...points.map((p) => p.y));
+            let yMax = Math.max(...points.map((p) => p.y));
+            if (xMin === xMax) { xMin -= 0.5; xMax += 0.5; }
+            if (yMin === yMax) { yMin -= 0.5; yMax += 0.5; }
+            const xPad = (xMax - xMin) * 0.05;
+            const yPad = (yMax - yMin) * 0.05;
+            xMin -= xPad; xMax += xPad; yMin -= yPad; yMax += yPad;
+
+            const sx = (x) => padL + ((x - xMin) / (xMax - xMin)) * plotW;
+            const sy = (y) => padT + plotH - ((y - yMin) / (yMax - yMin)) * plotH;
+
+            const NS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(NS, 'svg');
+            svg.setAttribute('width', String(W));
+            svg.setAttribute('height', String(H));
+            svg.style.display = 'block';
+
+            // Axes + ticks
+            const axisStyle = 'stroke:#444;stroke-width:1;';
+            const tickFmt = (v) => {
+                const a = Math.abs(v);
+                if (a >= 100) return v.toFixed(0);
+                if (a >= 10)  return v.toFixed(1);
+                return v.toFixed(3);
+            };
+            const addLine = (x1, y1, x2, y2, style) => {
+                const ln = document.createElementNS(NS, 'line');
+                ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
+                ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
+                ln.setAttribute('style', style);
+                svg.appendChild(ln);
+            };
+            const addText = (x, y, text, anchor = 'middle', fill = '#888') => {
+                const t = document.createElementNS(NS, 'text');
+                t.setAttribute('x', x); t.setAttribute('y', y);
+                t.setAttribute('text-anchor', anchor);
+                t.setAttribute('font-family', 'Segoe UI, sans-serif');
+                t.setAttribute('font-size', '11');
+                t.setAttribute('fill', fill);
+                t.textContent = text;
+                svg.appendChild(t);
+            };
+            addLine(padL, padT, padL, padT + plotH, axisStyle);
+            addLine(padL, padT + plotH, padL + plotW, padT + plotH, axisStyle);
+
+            const TICKS = 4;
+            for (let i = 0; i <= TICKS; i++) {
+                const xv = xMin + (i / TICKS) * (xMax - xMin);
+                const yv = yMin + (i / TICKS) * (yMax - yMin);
+                addLine(sx(xv), padT + plotH, sx(xv), padT + plotH + 4, axisStyle);
+                addText(sx(xv), padT + plotH + 16, tickFmt(xv));
+                addLine(padL - 4, sy(yv), padL, sy(yv), axisStyle);
+                addText(padL - 8, sy(yv) + 3, tickFmt(yv), 'end');
+            }
+            addText(padL + plotW / 2, H - 6, xMeta ? xMeta.label : xKey, 'middle', '#ccc');
+            const yLab = document.createElementNS(NS, 'text');
+            yLab.setAttribute('x', 12); yLab.setAttribute('y', padT + plotH / 2);
+            yLab.setAttribute('text-anchor', 'middle');
+            yLab.setAttribute('font-family', 'Segoe UI, sans-serif');
+            yLab.setAttribute('font-size', '11'); yLab.setAttribute('fill', '#ccc');
+            yLab.setAttribute('transform', `rotate(-90, 12, ${padT + plotH / 2})`);
+            yLab.textContent = yMeta ? yMeta.label : yKey;
+            svg.appendChild(yLab);
+
+            // Points
+            for (const p of points) {
+                const c = document.createElementNS(NS, 'circle');
+                const isSelected = p.idx === selectedParetoIdx;
+                c.setAttribute('cx', sx(p.x));
+                c.setAttribute('cy', sy(p.y));
+                c.setAttribute('r', isSelected ? 6 : 4);
+                c.setAttribute('fill', isSelected ? '#ffd43b' : '#4dabf7');
+                c.setAttribute('stroke', isSelected ? '#fff' : '#1f1f1f');
+                c.setAttribute('stroke-width', '1');
+                c.style.cursor = 'pointer';
+                c.addEventListener('click', () => selectParetoPoint(p.idx));
+                const title = document.createElementNS(NS, 'title');
+                title.textContent =
+                    `Layout #${p.idx + 1} — ${xMeta?.label ?? xKey}: ${tickFmt(p.x)}, ${yMeta?.label ?? yKey}: ${tickFmt(p.y)}`;
+                c.appendChild(title);
+                svg.appendChild(c);
+            }
+            paretoChart.appendChild(svg);
+            updateSelectedInfo();
+        }
+
+        function selectParetoPoint(idx) {
+            if (!Array.isArray(lastParetoSerialized) || idx < 0 || idx >= lastParetoSerialized.length) return;
+            selectedParetoIdx = idx;
+            const entry = lastParetoSerialized[idx];
+            resultOutput.value = serializeBestForUI(entry);
+            // Pareto entries are also valid "best" entries for export/sim purposes.
+            lastBestSerialized = entry;
+            exportBtn.disabled = false;
+            openSimBtn.disabled = false;
+            renderParetoChart();
+        }
+
+        function updateSelectedInfo() {
+            const entry = lastParetoSerialized?.[selectedParetoIdx];
+            if (!entry) { paretoSelectedInfo.textContent = 'No layout selected.'; return; }
+            const m = entry.metrics || {};
+            const fmt = (k, d = 3) => Number.isFinite(m[k]) ? Number(m[k]).toFixed(d) : '—';
+            const speedDemandDegPerS = Number.isFinite(m.speedDemand) ? m.speedDemand * 180 / Math.PI : null;
+
+            const parts = [
+                `Selected layout #${selectedParetoIdx + 1}`,
+                `coverage ${fmt('coverage', 1)}%`,
+                `isotropy ${fmt('isotropy')}`,
+                `limit ${fmt('limitMargin')}`,
+            ];
+
+            // Torque line: demand alone if no spec, demand + margin if spec given
+            if (Number.isFinite(m.torqueMargin) && Number.isFinite(m.servoMaxTorqueNm)) {
+                const pct = (m.torqueMargin * 100).toFixed(0);
+                const flag = m.torqueMargin < 0 ? ' ⚠OVER' : '';
+                parts.push(`τ ${fmt('torque', 2)}/${m.servoMaxTorqueNm.toFixed(2)} N·m (${pct}% margin${flag})`);
+            } else {
+                parts.push(`τ demand ${fmt('torque', 2)} N·m (min servo spec)`);
+            }
+
+            // Speed line: demand alone if no spec, demand + margin if spec given
+            if (Number.isFinite(m.speedMargin) && Number.isFinite(m.servoMaxSpeedRadPerS)) {
+                const pct = (m.speedMargin * 100).toFixed(0);
+                const flag = m.speedMargin < 0 ? ' ⚠OVER' : '';
+                const maxDegPerS = (m.servoMaxSpeedRadPerS * 180 / Math.PI).toFixed(0);
+                parts.push(`speed ${speedDemandDegPerS?.toFixed(0) ?? '—'}/${maxDegPerS} °/s (${pct}% margin${flag})`);
+            } else {
+                parts.push(`speed demand ${speedDemandDegPerS?.toFixed(0) ?? '—'} °/s (min servo spec)`);
+            }
+
+            paretoSelectedInfo.textContent = parts.join(' — ');
+        }
+
+        // --- URL hash for round-trip with simulator -------------------------
+        function encodeLayoutToHash(layout) {
+            // base64-encode the layout JSON (UTF-8 safe via TextEncoder)
+            const json = JSON.stringify(layout);
+            const bytes = new TextEncoder().encode(json);
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }
+        function decodeLayoutFromHash(hashStr) {
+            try {
+                const bin = atob(hashStr);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                return JSON.parse(new TextDecoder().decode(bytes));
+            } catch (e) { return null; }
+        }
+        function consumeIncomingLayoutHash() {
+            const h = window.location.hash || '';
+            const m = h.match(/[#&]layout=([^&]+)/);
+            if (!m) return;
+            const layout = decodeLayoutFromHash(decodeURIComponent(m[1]));
+            if (!layout) return;
+            // Drop optimizer-specific envelope fields if they came from the simulator
+            const seed = {
+                base_anchors: layout.base_anchors,
+                platform_anchors: layout.platform_anchors,
+                beta_angles: layout.beta_angles,
+                horn_length: layout.horn_length,
+                rod_length: layout.rod_length,
+                servo_range: layout.servo_range,
+                home_height: layout.home_height,
+            };
+            referenceInput.value = JSON.stringify(seed, null, 2);
+            // Sync ball joint limit if the incoming layout supplies one
+            if (Number.isFinite(layout.ball_joint_max_deg)) {
+                ballJointLimitInput.value = layout.ball_joint_max_deg;
+            }
+            const refDetails = referenceInput.closest('details');
+            if (refDetails) refDetails.open = true;
+            showStatus('Layout received from simulator and loaded into Reference Layout.', 'success');
+            // Clear the hash so a refresh doesn't re-import
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
+        function openSelectedInSimulator() {
+            if (!lastBestSerialized) return;
+            // Strip metadata + workspace stats for a smaller URL hash
+            const layout = lastBestSerialized.layout || lastBestSerialized;
+            const slim = {
+                base_anchors: layout.base_anchors,
+                platform_anchors: layout.platform_anchors,
+                beta_angles: layout.beta_angles,
+                horn_length: layout.horn_length,
+                rod_length: layout.rod_length,
+                servo_range: layout.servo_range,
+                home_height: layout.home_height,
+            };
+            const hash = encodeLayoutToHash(slim);
+            window.open(`./simulator.html#layout=${hash}`, '_blank', 'noopener');
+        }
+
+        // --- Worker lifecycle -------------------------------------------------
+        function ensureWorkerTerminated() {
+            if (worker) {
+                try { worker.terminate(); } catch (_) {}
+                worker = null;
+            }
+        }
+
+        function setRunningUI(running) {
+            runBtn.disabled = running;
+            stopBtn.disabled = !running;
+            exportBtn.disabled = running || !lastBestSerialized;
+            openSimBtn.disabled = running || !lastBestSerialized;
+        }
+
+        function startOptimization() {
+            try {
+                const text = requirementsInput.value.trim();
+                if (!text) throw new Error('Provide requirements JSON before running the optimizer.');
+
+                const { normalized, workspace } = parseRequirements(text);
+                populateWorkspaceInputs(workspace);
+                populateSafetyInputs(normalized);
+
+                const generations    = Math.max(1, parseInt(document.getElementById('optGenerations').value, 10) || 1);
+                const populationSize = Math.max(4, parseInt(document.getElementById('optPopulation').value, 10) || 4);
+                const mutationRate   = Math.min(1, Math.max(0,
+                                         parseFloat(document.getElementById('optMutationRate').value) || 0.35));
+                const ranges         = readWorkspaceRanges();
+                const topology       = document.getElementById('optTopology').value;
+                const objectiveSet   = document.getElementById('optObjectiveSet').value;
+                const depth          = document.getElementById('optDepth').value;
+
+                let sampleStrategy, sampleCount;
+                switch (depth) {
+                    case 'quick':      sampleStrategy = 'halton'; sampleCount =  256; break;
+                    case 'thorough':   sampleStrategy = 'halton'; sampleCount = 4096; break;
+                    case 'exhaustive': sampleStrategy = 'grid';   sampleCount =    0; break;
+                    case 'standard':
+                    default:           sampleStrategy = 'halton'; sampleCount = 1024;
+                }
+
+                let referenceLayout = null;
+                const refText = referenceInput.value.trim();
+                if (refText) {
+                    try {
+                        referenceLayout = JSON.parse(refText);
+                    } catch (e) {
+                        throw new Error('Reference Layout is not valid JSON.');
+                    }
+                }
+
+                resultOutput.value = '';
+                lastBestSerialized = null;
+                lastParetoSerialized = [];
+                selectedParetoIdx = 0;
+                paretoPanel.style.display = 'none';
+                paretoChart.innerHTML = '';
+                paretoSelectedInfo.textContent = 'No layout selected.';
+                resetProgress();
+                showProgressPanel();
+                showStatus(`Spawning worker — depth=${depth}, topology=${topology}, objectives=${objectiveSet}…`);
+
+                ensureWorkerTerminated();
+                worker = new Worker('./optimizer-worker.js', { type: 'module' });
+                runStartTime = Date.now();
+                setRunningUI(true);
+
+                worker.addEventListener('message', (event) => {
+                    const { type, payload } = event.data || {};
+                    if (type === 'started') {
+                        runStartTime = payload.startTime || Date.now();
+                        showStatus(
+                            `Running — ${payload.populationSize} layouts × (${payload.generations}+1) gens = ` +
+                            `${payload.totalEvals} evaluations; ${payload.sampleStrategy === 'grid'
+                                ? 'exhaustive grid sampling'
+                                : `${payload.sampleCount} ${payload.sampleStrategy} samples per evaluation`}.`
+                        );
+                    } else if (type === 'progress') {
+                        // Use worker's startTime if it sent one, else our local one
+                        if (!payload.startTime) payload.startTime = runStartTime;
+                        updateProgress(payload);
+                    } else if (type === 'done') {
+                        const stoppedNote = payload.stopped ? ' (stopped early)' : '';
+                        showStatus(
+                            `Optimization complete${stoppedNote}. ` +
+                            `Pareto front: ${payload.pareto.length} layouts. ` +
+                            `Best coverage: ${payload.best?.metrics?.coverage?.toFixed(1) ?? '—'}%.`,
+                            payload.stopped ? 'warn' : 'success'
+                        );
+                        lastBestSerialized   = payload.best;
+                        lastParetoSerialized = payload.pareto;
+                        selectedParetoIdx = (Number.isInteger(payload.bestIndex) && payload.bestIndex >= 0)
+                            ? payload.bestIndex
+                            : 0;
+                        resultOutput.value = serializeBestForUI(payload.best);
+                        renderParetoChart();
+                        setRunningUI(false);
+                        ensureWorkerTerminated();
+                    } else if (type === 'error') {
+                        showStatus(`Error: ${payload.message}`, 'error');
+                        console.error('Worker error:', payload);
+                        setRunningUI(false);
+                        ensureWorkerTerminated();
+                    }
+                });
+                worker.addEventListener('error', (event) => {
+                    showStatus(`Worker error: ${event.message || 'unknown'}`, 'error');
+                    console.error('Worker error event:', event);
+                    setRunningUI(false);
+                    ensureWorkerTerminated();
+                });
+
+                worker.postMessage({
+                    type: 'start',
+                    payload: {
+                        requirementsText: text,
+                        populationSize, generations, mutationRate, ranges,
+                        ballJointLimitDeg: Number(ballJointLimitInput.value) || 52,
+                        ballJointClamp: ballJointClampCheck.checked,
+                        topology, referenceLayout,
+                        sampleStrategy, sampleCount, objectiveSet,
+                        servoMaxTorqueNm: parseOptionalNumber(servoMaxTorqueInput.value),
+                        servoMaxSpeedDegPerS: parseOptionalNumber(servoMaxSpeedInput.value),
+                    },
+                });
+            } catch (error) {
+                console.error(error);
+                showStatus(error.message, 'error');
+                setRunningUI(false);
+                ensureWorkerTerminated();
+            }
+        }
+
+        function stopOptimization() {
+            if (!worker) return;
+            showStatus('Stopping… (will return best result so far)');
+            worker.postMessage({ type: 'stop' });
+        }
+
+        function exportBest() {
+            if (!lastBestSerialized) {
+                showStatus('No optimized layout available to export.', 'error');
+                return;
+            }
+            const data = JSON.stringify(lastBestSerialized, null, 2);
+            downloadBlob(data, 'optimized_layout.json', 'application/json');
+        }
+
+        // --- Wire UI ---------------------------------------------------------
+        document.getElementById('loadSampleRequirements').addEventListener('click', async () => {
+            try {
+                const json = await loadDefaultRequirements();
+                requirementsInput.value = json;
+                const { workspace, normalized } = parseRequirements(json);
+                populateWorkspaceInputs(workspace);
+                populateSafetyInputs(normalized);
+                showStatus('Sample requirements loaded.');
+            } catch (error) {
+                console.error(error);
+                showStatus(error.message, 'error');
+            }
+        });
+
+        document.getElementById('clearRequirements').addEventListener('click', () => {
+            requirementsInput.value = '';
+            resultOutput.value = '';
+            showStatus('Requirements cleared.');
+        });
+
+        document.getElementById('clearReferenceLayout').addEventListener('click', () => {
+            referenceInput.value = '';
+            showStatus('Reference layout cleared.');
+        });
+
+        runBtn.addEventListener('click', startOptimization);
+        stopBtn.addEventListener('click', stopOptimization);
+        exportBtn.addEventListener('click', exportBest);
+        openSimBtn.addEventListener('click', openSelectedInSimulator);
+
+        // Pareto axis dropdowns rerender chart on change
+        populateParetoAxisDropdowns();
+        paretoXAxis.addEventListener('change', renderParetoChart);
+        paretoYAxis.addEventListener('change', renderParetoChart);
+        // Re-render on resize so the SVG matches the container width
+        window.addEventListener('resize', () => {
+            if (paretoPanel.style.display !== 'none') renderParetoChart();
+        });
+
+        // Accept layouts arriving from the simulator via URL hash
+        consumeIncomingLayoutHash();
+
+        loadDefaultRequirements()
+            .then((json) => {
+                requirementsInput.value = json;
+                const { workspace, normalized } = parseRequirements(json);
+                populateWorkspaceInputs(workspace);
+                populateSafetyInputs(normalized);
+                showStatus('Sample requirements loaded. Adjust parameters and run the optimizer.');
+            })
+            .catch((error) => {
+                console.error(error);
+                showStatus(error.message, 'error');
+            });
+    </script>
+</body>
+</html>
